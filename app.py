@@ -25,7 +25,7 @@ async def create_blogs(request: Request):
 
     if topic:
         graph = graph_builder.setup_graph(topic, language)
-        state = graph.invoke({"topic": topic})
+        state = graph.invoke({"topic": topic, "language": language})
 
     return {"data": state}
 

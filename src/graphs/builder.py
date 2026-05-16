@@ -24,15 +24,46 @@ class GraphBuilder:
 
         return self.graph
 
-    def setup_graph(self, topic, language):
-        if topic and language:
-            pass
+    def build_language_graph(self):
+        """
+        Build a graph to generate a blog for topic and language
+        """
+        self.node = BlogNode(llm=self.llm)
 
+        # Nodes
+        self.graph.add_node("title_creation", self.node.title_creation)
+        self.graph.add_node("content_generation", self.node.content_generation)
+        self.graph.add_node("route", self.node.route)
+        self.graph.add_node(
+            "hind_translation",
+            lambda state: self.node.translation({**state, "language": "hindi"}),
+        )
+        self.graph.add_node(
+            "french_translation",
+            lambda state: self.node.translation({**state, "language": "french"}),
+        )
+
+        # Edge
+        self.graph.add_edge(START, "title_creation")
+        self.graph.add_edge("title_creation", "content_generation")
+        self.graph.add_edge("content_generation", "route")
+        self.graph.add_conditional_edges(
+            "route",
+            self.node.route_decision,
+            {"hindi": "hind_translation", "french": "french_translation"},
+        )
+        self.graph.add_edge("hind_translation", END)
+        self.graph.add_edge("french_translation", END)
+        return self.graph
+
+    def setup_graph(self, topic, language):
         if topic:
+            if language:
+                return self.build_language_graph().compile()
             return self.build_topic_graph().compile()
 
 
 ## Below code is for Langsmith & Langgraph Studio
 llm = GroqLLM().get_llm()
 builder = GraphBuilder(llm)
-graph = builder.build_topic_graph().compile()
+graph = builder.build_language_graph().compile()
